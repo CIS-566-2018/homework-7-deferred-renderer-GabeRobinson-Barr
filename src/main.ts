@@ -115,7 +115,7 @@ function main() {
     // apply 32-bit post and tonemap from 32-bit color to 8-bit color
     renderer.renderPostProcessHDR();
     // apply 8-bit post and draw
-    renderer.renderPostProcessLDR();
+    renderer.renderPostProcessLDR(camera);
 
     stats.end();
     requestAnimationFrame(tick);

@@ -6,7 +6,7 @@ in vec4 fs_Nor;
 in vec4 fs_Col;
 in vec2 fs_UV;
 
-out vec4 fragColor[3]; // The data in the ith index of this array of outputs
+out vec4 fragColor[4]; // The data in the ith index of this array of outputs
                        // is passed to the ith index of OpenGLRenderer's
                        // gbTargets array, which is an array of textures.
                        // This lets us output different types of data,
@@ -27,6 +27,7 @@ void main() {
     col = pow(col, vec3(2.2));
 
     fragColor[0] = vec4(fs_Nor.xyz, fs_Pos.z);
-    fragColor[1] = vec4(1.0);
+    fragColor[1] = vec4(1.0, 0, 0, fs_Pos.z);
     fragColor[2] = vec4(col, 1.0);
+    fragColor[3] = vec4(1.0,1.0,1.0,fs_Pos.z);
 }

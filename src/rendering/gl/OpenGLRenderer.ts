@@ -56,7 +56,7 @@ class OpenGLRenderer {
 
   constructor(public canvas: HTMLCanvasElement) {
     this.currentTime = 0.0;
-    this.gbTargets = [undefined, undefined, undefined];
+    this.gbTargets = [undefined, undefined, undefined, undefined];
     this.post8Buffers = [undefined, undefined];
     this.post8Targets = [undefined, undefined];
     this.post8Passes = [];
@@ -70,6 +70,8 @@ class OpenGLRenderer {
     //this.add8BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/examplePost2-frag.glsl'))));
 
     //this.add32BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/examplePost3-frag.glsl'))));
+
+    this.add8BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/depth-of-field.glsl'))));
 
     if (!gl.getExtension("OES_texture_float_linear")) {
       console.error("OES_texture_float_linear not available");
@@ -87,6 +89,13 @@ class OpenGLRenderer {
     gl.uniform1i(gb0loc, 0);
     gl.uniform1i(gb1loc, 1);
     gl.uniform1i(gb2loc, 2);
+
+    // Reuse u_gb1 for depth-of-field post process since we already calculated distance (I pass distance in gb1 as well as gb0 for this purpose)
+    if (this.post8Passes.length > 0) {
+      var depth = gl.getUniformLocation(this.post8Passes[0].prog, "u_gb3");
+      this.post8Passes[0].use();
+      gl.uniform1i(depth, 1);
+    }
   }
 
 
@@ -104,7 +113,7 @@ class OpenGLRenderer {
     // refresh the gbuffers
     this.gBuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer);
-    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
 
     for (let i = 0; i < this.gbTargets.length; i ++) {
       this.gbTargets[i] = gl.createTexture();
@@ -114,7 +123,7 @@ class OpenGLRenderer {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-      if (i == 0) {
+      if (i == 0 || i == 3) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, gl.RGBA, gl.FLOAT, null);
       }
       else {
@@ -248,6 +257,7 @@ class OpenGLRenderer {
     let proj = camera.projectionMatrix;
     this.deferredShader.setViewMatrix(view);
     this.deferredShader.setProjMatrix(proj);
+    this.deferredShader.setCamPos(camera.controls.eye);
 
     for (let i = 0; i < this.gbTargets.length; i ++) {
       gl.activeTexture(gl.TEXTURE0 + i);
@@ -316,7 +326,7 @@ class OpenGLRenderer {
 
 
   // TODO: pass any info you need as args
-  renderPostProcessLDR() {
+  renderPostProcessLDR(camera: Camera) {
     // TODO: replace this with your post 8-bit pipeline
     // the loop shows how to swap between frame buffers and textures given a list of processes,
     // but specific shaders (e.g. motion blur) need specific info as textures
@@ -333,6 +343,12 @@ class OpenGLRenderer {
 
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.post8Targets[(i) % 2]);
+      if (i == 0) { // Bind gb3 for the depth of field shader
+        this.post8Passes[i].setCamTarget(camera.controls.center);
+        this.post8Passes[i].setCamPos(camera.controls.eye);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.gbTargets[3]);
+      }
 
       this.post8Passes[i].draw();
 

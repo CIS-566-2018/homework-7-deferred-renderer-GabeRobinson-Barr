@@ -1,4 +1,4 @@
-import {vec4, mat4} from 'gl-matrix';
+import {vec3, vec4, mat4} from 'gl-matrix';
 import Drawable from './Drawable';
 import Texture from './Texture';
 import {gl} from '../../globals';
@@ -34,6 +34,8 @@ class ShaderProgram {
   unifProj: WebGLUniformLocation;
   unifColor: WebGLUniformLocation;
   unifTime: WebGLUniformLocation;
+  unifCamPos: WebGLUniformLocation;
+  unifTarget: WebGLUniformLocation;
 
   unifTexUnits: Map<string, WebGLUniformLocation>;
 
@@ -59,6 +61,9 @@ class ShaderProgram {
     this.unifProj = gl.getUniformLocation(this.prog, "u_Proj");
     this.unifColor = gl.getUniformLocation(this.prog, "u_Color");
     this.unifTime = gl.getUniformLocation(this.prog, "u_Time")
+    this.unifCamPos = gl.getUniformLocation(this.prog, "u_CamPos");
+    this.unifTarget = gl.getUniformLocation(this.prog, "u_CamTarget");
+
 
     this.unifTexUnits = new Map<string, WebGLUniformLocation>();
   }
@@ -140,6 +145,20 @@ class ShaderProgram {
     this.use();
     if (this.unifTime !== -1) {
       gl.uniform1f(this.unifTime, t);
+    }
+  }
+
+  setCamPos(pos: vec3) {
+    this.use();
+    if (this.unifCamPos !== -1) {
+      gl.uniform3fv(this.unifCamPos, pos);
+    }
+  }
+
+  setCamTarget(tar: vec3) {
+    this.use();
+    if (this.unifTarget !== -1) {
+      gl.uniform3fv(this.unifTarget, tar);
     }
   }
 
