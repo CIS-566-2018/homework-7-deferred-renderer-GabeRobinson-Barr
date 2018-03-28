@@ -1,5 +1,8 @@
 # Project 7: Deferred Renderer
 
+Git Pages link:
+https://gaberobinson-barr.github.io/homework-7-deferred-renderer-GabeRobinson-Barr/
+
 For this hw I implemented Bloom, depth of field, and pointilism.
 You can turn pointilism on or off by checking the box in the gui.
 In the background a sun/moon rotates and is also the source of light in the scene. This is achieved by just altering the light direction to match the location of the sun/moon in deferred-renderer.glsl
