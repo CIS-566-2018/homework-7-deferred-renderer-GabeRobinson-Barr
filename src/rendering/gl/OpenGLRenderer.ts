@@ -27,9 +27,13 @@ class OpenGLRenderer {
   post8Buffers: WebGLFramebuffer[];
   post8Targets: WebGLTexture[];
 
+  carryTexture: WebGLTexture; // Texture used for storing a texture we want to keep over multiple post-processes
+
   // post processing shader lists, try to limit the number for performance reasons
   post8Passes: PostProcess[];
   post32Passes: PostProcess[];
+
+  hasbloom: boolean = false;
 
   currentTime: number; // timer number to apply to all drawing shaders
 
@@ -71,7 +75,12 @@ class OpenGLRenderer {
 
     //this.add32BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/examplePost3-frag.glsl'))));
 
-    this.add8BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/depth-of-field.glsl'))));
+    this.add8BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/depth-of-field.glsl')))); // post8passes[0] is depth-of-field
+
+
+    this.add32BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/bloom-prepass.glsl')))); // post32passes[0] and [1] are bloom-prepass and bloom respectively
+    this.add32BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/bloom.glsl'))));
+    this.hasbloom = true; // Set this to true so we know to bind the carryover buffer later
 
     if (!gl.getExtension("OES_texture_float_linear")) {
       console.error("OES_texture_float_linear not available");
@@ -95,6 +104,14 @@ class OpenGLRenderer {
       var depth = gl.getUniformLocation(this.post8Passes[0].prog, "u_gb3");
       this.post8Passes[0].use();
       gl.uniform1i(depth, 1);
+    }
+    // If we have the two bloom filters in our post32passes, make sure to point bloom.glsl to the original frame texture as well as the bloom texture
+    if (this.post32Passes.length > 1 && this.hasbloom) {
+      var frame = gl.getUniformLocation(this.post32Passes[1].prog, "u_frame");
+      var bloom = gl.getUniformLocation(this.post32Passes[1].prog, "u_bloom");
+      this.post32Passes[1].use();
+      gl.uniform1i(bloom, 0);
+      gl.uniform1i(frame, 1);
     }
   }
 
@@ -173,9 +190,25 @@ class OpenGLRenderer {
       }
 
       // 32 bit buffers have float textures of type gl.RGBA32F
-      this.post32Buffers[i] = gl.createFramebuffer()
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[i]);
-      gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+      if (i == 1 && this.hasbloom) { // If the bloom filter is active, bind a second texture (carryTexture) to carry over the original frame
+        this.post32Buffers[i] = gl.createFramebuffer()
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[i]);
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+
+        this.carryTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.carryTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, gl.RGBA, gl.FLOAT, null);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.carryTexture, 0);
+      }
+      else {
+        this.post32Buffers[i] = gl.createFramebuffer()
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.post32Buffers[i]);
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+      }
 
       this.post32Targets[i] = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[i]);
@@ -185,6 +218,7 @@ class OpenGLRenderer {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, gl.RGBA, gl.FLOAT, null);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.post32Targets[i], 0);
+      
 
       FBOstatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
       if (FBOstatus != gl.FRAMEBUFFER_COMPLETE) {
@@ -290,8 +324,14 @@ class OpenGLRenderer {
       // the output of a render pass. post32Targets is the array that stores
       // these textures, so we alternate reading from the 0th and 1th textures
       // each frame (the texture we wrote to in our previous render pass).
+
+      if (i == 1 && this.hasbloom) { // If we are rendering the bloom-prepass, make sure to bind the carryover texture (holds the original frame)
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.carryTexture);
+      }
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.post32Targets[(i) % 2]);
+      
 
       this.post32Passes[i].draw();
 

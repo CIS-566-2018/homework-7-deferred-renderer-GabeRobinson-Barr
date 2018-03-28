@@ -75,7 +75,7 @@ void main() {
 	meshcol += specular;
 #endif
 
-	meshcol = clamp(meshcol * (1.0 - ismesh), 0.0, 1.0);
+	meshcol = meshcol * (1.0 - ismesh);
 
 	out_Col = vec4(meshcol + backcol, 1.0);
 
