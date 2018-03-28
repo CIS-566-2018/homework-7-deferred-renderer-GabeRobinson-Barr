@@ -24,6 +24,11 @@ let mesh0: Mesh;
 
 let tex0: Texture;
 
+var controls = {
+  pointilism: false,
+  time: true,
+}
+
 
 var timer = {
   deltaTime: 0.0,
@@ -67,7 +72,9 @@ function main() {
   document.body.appendChild(stats.domElement);
 
   // Add controls to the gui
-  // const gui = new DAT.GUI();
+  const gui = new DAT.GUI();
+  gui.add(controls, "pointilism");
+  gui.add(controls, "time");
 
   // get canvas and webgl context
   const canvas = <HTMLCanvasElement> document.getElementById('canvas');
@@ -100,7 +107,9 @@ function main() {
     stats.begin();
     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     timer.updateTime();
-    renderer.updateTime(timer.deltaTime, timer.currentTime);
+    if(controls.time) {
+      renderer.updateTime(timer.deltaTime, timer.currentTime);
+    }
 
     standardDeferred.bindTexToUnit("tex_Color", tex0, 0);
 
@@ -115,7 +124,7 @@ function main() {
     // apply 32-bit post and tonemap from 32-bit color to 8-bit color
     renderer.renderPostProcessHDR();
     // apply 8-bit post and draw
-    renderer.renderPostProcessLDR(camera);
+    renderer.renderPostProcessLDR(camera, controls.pointilism);
 
     stats.end();
     requestAnimationFrame(tick);

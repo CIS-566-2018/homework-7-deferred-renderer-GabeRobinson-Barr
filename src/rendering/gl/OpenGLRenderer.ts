@@ -369,11 +369,12 @@ class OpenGLRenderer {
 
 
   // TODO: pass any info you need as args
-  renderPostProcessLDR(camera: Camera) {
+  renderPostProcessLDR(camera: Camera, point: boolean) {
     // TODO: replace this with your post 8-bit pipeline
     // the loop shows how to swap between frame buffers and textures given a list of processes,
     // but specific shaders (e.g. motion blur) need specific info as textures
     for (let i = 0; i < this.post8Passes.length; i++){
+      
       // pingpong framebuffers for each pass
       // if this is the last pass, default is bound
       if (i < this.post8Passes.length - 1) gl.bindFramebuffer(gl.FRAMEBUFFER, this.post8Buffers[(i + 1) % 2]);
@@ -393,6 +394,9 @@ class OpenGLRenderer {
         gl.bindTexture(gl.TEXTURE_2D, this.gbTargets[3]);
       }
 
+      if (i == this.post8Passes.length - 1) { // Set whether or not the pointilism shader is active
+        this.post8Passes[i].setActive(point);
+      }
       this.post8Passes[i].draw();
 
       // bind default

@@ -6,6 +6,7 @@ out vec4 out_Col;
 
 uniform sampler2D u_frame;
 uniform float u_Time;
+uniform float u_active;
 
 float rand(float x, float y) { // Returns some randomish number
     return abs(fract((157.2943 + 43.499 * x + 209.63 * y) * (sin(203.11 * (x + 66.603))+ cos(50.9 * y))));
@@ -24,5 +25,5 @@ void main() {
         color = vec3(0.0);
     }
 
-    out_Col = vec4(color, 1.0); // pass the origial frame on to the bloom postprocess
+    out_Col = u_active * vec4(color, 1.0) + (1.0 - u_active) * texture(u_frame, fs_UV);
 }

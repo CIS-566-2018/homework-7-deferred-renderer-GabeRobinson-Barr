@@ -36,6 +36,7 @@ class ShaderProgram {
   unifTime: WebGLUniformLocation;
   unifCamPos: WebGLUniformLocation;
   unifTarget: WebGLUniformLocation;
+  unifActive: WebGLUniformLocation;
 
   unifTexUnits: Map<string, WebGLUniformLocation>;
 
@@ -63,7 +64,7 @@ class ShaderProgram {
     this.unifTime = gl.getUniformLocation(this.prog, "u_Time")
     this.unifCamPos = gl.getUniformLocation(this.prog, "u_CamPos");
     this.unifTarget = gl.getUniformLocation(this.prog, "u_CamTarget");
-
+    this.unifActive = gl.getUniformLocation(this.prog, "u_active");
 
     this.unifTexUnits = new Map<string, WebGLUniformLocation>();
   }
@@ -159,6 +160,18 @@ class ShaderProgram {
     this.use();
     if (this.unifTarget !== -1) {
       gl.uniform3fv(this.unifTarget, tar);
+    }
+  }
+
+  setActive(on: boolean) {
+    this.use();
+    if (this.unifActive !== -1) {
+      if(on) {
+        gl.uniform1f(this.unifActive, 1.0);
+      }
+      else {
+        gl.uniform1f(this.unifActive, 0.0);
+      }
     }
   }
 
