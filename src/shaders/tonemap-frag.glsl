@@ -25,6 +25,7 @@ void main() {
 
 	// gamma correction
 	//color = pow(color, vec3(1.0 / 2.2)); // Dont need this for this version of tone mapping
+	color = clamp(color, 0.0, 1.0);
 
 	out_Col = vec4(color, 1.0);
 }

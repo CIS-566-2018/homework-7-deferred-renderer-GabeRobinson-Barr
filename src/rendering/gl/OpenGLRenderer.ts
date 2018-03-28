@@ -5,6 +5,7 @@ import {gl} from '../../globals';
 import ShaderProgram, {Shader} from './ShaderProgram';
 import PostProcess from './PostProcess'
 import Square from '../../geometry/Square';
+import Texture from './Texture';
 
 
 class OpenGLRenderer {
@@ -76,6 +77,8 @@ class OpenGLRenderer {
     //this.add32BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/examplePost3-frag.glsl'))));
 
     this.add8BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/depth-of-field.glsl')))); // post8passes[0] is depth-of-field
+
+    this.add8BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/pointilism.glsl')))); // Pointilism shader
 
 
     this.add32BitPass(new PostProcess(new Shader(gl.FRAGMENT_SHADER, require('../../shaders/bloom-prepass.glsl')))); // post32passes[0] and [1] are bloom-prepass and bloom respectively
